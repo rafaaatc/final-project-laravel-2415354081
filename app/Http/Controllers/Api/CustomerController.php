@@ -9,9 +9,28 @@ use Illuminate\Http\JsonResponse;
 
 class CustomerController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $customers = Customer::latest()->get();
+        $status = $request->query('status');
+
+        $query = Customer::query();
+
+        if ($status !== null) {
+
+            if (!in_array($status, ['active', 'inactive'], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'status' => ['The selected status is invalid.'],
+                    ],
+                ], 422);
+            }
+
+            $query->where('status', $status === 'active');
+        }
+
+        $customers = $query->latest()->get();
 
         return response()->json([
             'success' => true,
@@ -31,6 +50,8 @@ class CustomerController extends Controller
             'status' => 'nullable|boolean'
         ]);
 
+        $data['status'] = $data['status'] ?? true;
+
         $customer = Customer::create($data);
 
         return response()->json([
@@ -47,7 +68,8 @@ class CustomerController extends Controller
         if (!$customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Customer not found'
+                'message' => 'Customer not found',
+                'errors' => []
             ], 404);
         }
 
@@ -65,7 +87,8 @@ class CustomerController extends Controller
         if (!$customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Customer not found'
+                'message' => 'Customer not found',
+                'errors' => []
             ], 404);
         }
 
@@ -94,7 +117,8 @@ class CustomerController extends Controller
         if (!$customer) {
             return response()->json([
                 'success' => false,
-                'message' => 'Customer not found'
+                'message' => 'Customer not found',
+                'errors' => []
             ], 404);
         }
 
@@ -102,7 +126,54 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Customer deleted successfully'
+            'message' => 'Customer deleted successfully',
+            'data' => null
+        ]);
+    }
+
+    public function activate(int $customer): JsonResponse
+    {
+        $customer = Customer::find($customer);
+
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer not found',
+                'errors' => []
+            ], 404);
+        }
+
+        $customer->update([
+            'status' => true
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer activated successfully',
+            'data' => $customer
+        ]);
+    }
+
+    public function deactivate(int $customer): JsonResponse
+    {
+        $customer = Customer::find($customer);
+
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer not found',
+                'errors' => []
+            ], 404);
+        }
+
+        $customer->update([
+            'status' => false
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer deactivated successfully',
+            'data' => $customer
         ]);
     }
 }
